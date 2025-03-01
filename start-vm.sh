@@ -11,18 +11,42 @@ fi
 # VM name
 VM_NAME="$1"
 
-# Load Cloudflare API details from environment file
-CF_ENV_FILE="/home/jasonvi/Projects/virsh-scripts/cloudflare.env"
-if [ -f "$CF_ENV_FILE" ]; then
-    echo "Loading Cloudflare API details from $CF_ENV_FILE..."
-    source "$CF_ENV_FILE"
+# Function to check and load environment variables
+check_env_file() {
+    local env_file="$1"
+    
+    # Check if the environment file exists
+    if [ ! -f "$env_file" ]; then
+        echo "Cloudflare configuration file not found at $env_file"
+        return 1
+    fi
+
+    # Load the environment file
+    echo "Loading Cloudflare API details from $env_file..."
+    source "$env_file"
+
+    # Validate required variables are set
+    if [ -z "$CF_API_TOKEN" ] || [ -z "$CF_DOMAIN" ]; then
+        echo "Required Cloudflare configuration variables are missing in $env_file."
+        return 1
+    fi
+    
+    return 0
+}
+
+# Check environment variables, first in /etc, then in script directory
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+if check_env_file "/etc/cloudflare.env"; then
+    # Successfully loaded from /etc
+    CF_ENV_FILE="/etc/cloudflare.env"
+elif check_env_file "$SCRIPT_DIR/cloudflare.env"; then
+    # Successfully loaded from script directory
+    CF_ENV_FILE="$SCRIPT_DIR/cloudflare.env"
 else
-    echo "Warning: Cloudflare environment file not found at $CF_ENV_FILE"
-    echo "Using default values. DNS updates may fail."
-    # Default values
-    CF_API_EMAIL="viloforge@outlook.com"
-    CF_API_TOKEN="your_cloudflare_api_token"
-    CF_DOMAIN="viloforge.com"
+    echo "Error: Cloudflare configuration file not found in /etc or $SCRIPT_DIR"
+    echo "Please create this file with your Cloudflare API details before running this script."
+    echo "Required variables: CF_API_TOKEN, CF_DOMAIN, CF_API_EMAIL"
+    exit 1
 fi
 
 # Function to get Zone ID for domain
