@@ -57,7 +57,6 @@ get_vm_ip() {
 change_hostname() {
     echo "Changing hostname to $NEW_VM..."
     ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$VM_IP" >/dev/null 2>&1
-    # Try to SSH as jasonvi user (using preconfigured SSH settings)
     echo "Connecting as $SSH_USER..."
     if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 $SSH_USER@$VM_IP "sudo hostnamectl set-hostname $NEW_VM && sudo sed -i 's/127.0.1.1.*/127.0.1.1 $NEW_VM/g' /etc/hosts && echo 'Hostname changed to $NEW_VM'" 2>/dev/null; then
         echo "Hostname successfully changed to $NEW_VM"
